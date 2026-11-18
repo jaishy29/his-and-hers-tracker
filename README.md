@@ -10,7 +10,7 @@ The app installs on your phone's Home Screen like a regular app. It is a "Progre
 > - ✅ Milestone 1: the full design and all five tabs, using pretend data saved on one device ("practice mode")
 > - ✅ Milestone 2: real logins (email + password), a shared database and live syncing (Supabase)
 > - ✅ Milestone 3: Today screen on real data: Undo also removes the feed post, one high five per check-in, late check-in banner
-> - ⏳ Milestones 4–5: Weight, Calendar, Progress and Rewards on real data
+> - ✅ Milestones 4–5: Weight, Calendar, Progress and Rewards checked on real data; "unlocked a scratch-off" is never announced twice
 > - ⏳ Milestone 6: push notifications
 > - ⏳ Milestone 7: go live on Vercel and install on both phones
 

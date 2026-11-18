@@ -79,3 +79,8 @@ export function todaysDayPosts(feed: FeedItem[], who: Who, today: string) {
 export function cheeredSince(feed: FeedItem[], from: Who, to: Who, sinceMs: number) {
   return feed.some((f) => f.kind === "cheer" && f.who === from && f.to === to && f.at >= sinceMs);
 }
+
+/** True if this ticket was already announced in the feed (e.g. a weight was deleted and logged again). */
+export function alreadyAnnounced(feed: FeedItem[], who: Who, m: Milestone) {
+  return feed.some((f) => f.kind === "milestone" && f.who === who && f.lost === m.lost);
+}

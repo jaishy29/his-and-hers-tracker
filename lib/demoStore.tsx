@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { DEFAULT_REMIND_AT, OTHER, type Who } from "./constants";
 import { todayNY } from "./dates";
-import { newMilestone, todaysDayPosts } from "./derive";
+import { alreadyAnnounced, newMilestone, todaysDayPosts } from "./derive";
 import { emptyPerson, makeDemoData } from "./demo";
 import { ls, StoreCtx, useClock, type Store } from "./storeCore";
 import type { AppData, FeedItem } from "./types";
@@ -111,7 +111,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         commit((d) => {
           if (value == null) delete d.people[who].weights[day];
           else d.people[who].weights[day] = value;
-          if (hit) post(d, { kind: "milestone", who, to: OTHER[who], lost: hit.lost, goal: hit.goal });
+          if (hit && !alreadyAnnounced(d.feed, who, hit)) post(d, { kind: "milestone", who, to: OTHER[who], lost: hit.lost, goal: hit.goal });
         });
         return hit;
       },

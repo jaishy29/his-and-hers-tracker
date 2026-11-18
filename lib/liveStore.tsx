@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { Session } from "@supabase/supabase-js";
 import { useToast } from "@/components/Toast";
 import { DEFAULT_REMIND_AT, OTHER, type Intensity, type Who, type WorkoutType } from "./constants";
-import { newMilestone, todaysDayPosts } from "./derive";
+import { alreadyAnnounced, newMilestone, todaysDayPosts } from "./derive";
 import { emptyPerson } from "./demo";
 import { feedText } from "./feedText";
 import { StoreCtx, useClock, type AuthStatus, type Store } from "./storeCore";
@@ -291,7 +291,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
       logWeight(who, day, value) {
         const hit = newMilestone(data.people[who], who, day, value);
-        const item = hit ? tempItem({ kind: "milestone", who, to: OTHER[who], lost: hit.lost, goal: hit.goal }) : null;
+        const item = hit && !alreadyAnnounced(data.feed, who, hit)
+          ? tempItem({ kind: "milestone", who, to: OTHER[who], lost: hit.lost, goal: hit.goal }) : null;
         run((d) => {
           if (value == null) delete d.people[who].weights[day];
           else d.people[who].weights[day] = value;
