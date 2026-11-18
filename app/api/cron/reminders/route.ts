@@ -9,10 +9,18 @@ import { supabaseAdmin } from "@/lib/server/admin";
 import { dailyReminder, missedAlert, nameOf } from "@/lib/server/messages";
 import { pushToSide, type PushMessage } from "@/lib/server/push";
 
+/** Allowed callers: the Supabase scheduler (its secret lives in the database's Vault) or CRON_SECRET (for testing). */
+async function isAllowed(given: string | undefined) {
+  if (!given) return false;
+  const envSecret = process.env.CRON_SECRET;
+  if (envSecret && given === envSecret) return true;
+  const { data } = await supabaseAdmin().rpc("check_cron_secret", { p: given });
+  return data === true;
+}
+
 async function handle(req: Request) {
-  const secret = process.env.CRON_SECRET;
   const given = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!secret || given !== secret) return Response.json({ error: "Not allowed" }, { status: 401 });
+  if (!(await isAllowed(given))) return Response.json({ error: "Not allowed" }, { status: 401 });
 
   const url = new URL(req.url);
   const dry = url.searchParams.get("dry") === "1";

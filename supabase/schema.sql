@@ -197,3 +197,38 @@ revoke all on public.reminder_log from anon, authenticated;
 -- The app's server (secret key) can read and write everything it needs.
 grant all on public.people, public.days, public.weights, public.scratched, public.feed,
   public.push_subscriptions, public.reminder_log to service_role;
+
+-- ---------- Reminder scheduler (Milestone 7) ----------
+-- Every 5 minutes, Supabase calls the live app's reminder route.
+-- Its password is generated inside the database (Vault) and never leaves it except in that call.
+-- If your app's address changes, update the url below and run this section again.
+create extension if not exists pg_cron;
+create extension if not exists pg_net with schema extensions;
+
+do $$
+begin
+  if not exists (select 1 from vault.secrets where name = 'hh_cron_secret') then
+    perform vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'hh_cron_secret', 'His & Hers reminder scheduler');
+  end if;
+end $$;
+
+-- Lets the app's server check the scheduler's password without ever reading it.
+create or replace function public.check_cron_secret(p text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from vault.decrypted_secrets where name = 'hh_cron_secret' and decrypted_secret = p)
+$$;
+revoke all on function public.check_cron_secret(text) from public, anon, authenticated;
+grant execute on function public.check_cron_secret(text) to service_role;
+
+select cron.unschedule(jobid) from cron.job where jobname = 'hh-reminders';
+select cron.schedule('hh-reminders', '*/5 * * * *', $job$
+  select net.http_post(
+    url := 'https://his-and-hers-tracker.vercel.app/api/cron/reminders',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'hh_cron_secret')
+    ),
+    body := '{}'::jsonb,
+    timeout_milliseconds := 20000
+  );
+$job$);
