@@ -7,6 +7,7 @@ import { ls, useStore } from "@/lib/store";
 import { feedText } from "@/lib/feedText";
 import type { FeedItem } from "@/lib/types";
 import { useToast } from "./Toast";
+import NotificationsCard from "./NotificationsCard";
 
 export default function TodayTab() {
   const { me } = useStore();
@@ -39,6 +40,7 @@ function TodayMain({ me }: { me: Who }) {
       <div className="grid2">
         <Feed />
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
+          <NotificationsCard />
           <Settings me={me} />
           <InstallCard />
         </div>
@@ -256,7 +258,7 @@ function Settings({ me }: { me: Who }) {
         <input className="t" type="time" value={time} onChange={(e) => setTime(e.target.value)}
           onBlur={() => { if (time && time !== p.remindAt) { setRemindAt(time); toast("Check-in time set to " + fmtTime(time)); } }} />
       </label>
-      <p className="hint">If you haven&apos;t checked in by this time (New York time), you&apos;ll get a reminder and the app marks you as running late.</p>
+      <p className="hint">If you haven&apos;t checked in by this time (New York time), you&apos;ll get a reminder notification and the app marks you as running late. At 9 PM, your partner is told if you still haven&apos;t checked in.</p>
       {mode === "live" && auth.email && <p className="hint">Logged in as {auth.email}</p>}
       <div className="row">
         <button className="btn ghost small" onClick={() => { if (mode === "demo" || confirm("Log out of the app on this device?")) auth.signOut(); }}>

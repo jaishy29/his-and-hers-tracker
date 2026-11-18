@@ -162,3 +162,38 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ---------- Notifications (Milestone 6) ----------
+
+-- Each phone/browser that turned on notifications. Only the app's server reads these.
+create table if not exists public.push_subscriptions (
+  endpoint   text primary key,
+  side       text not null references public.people (side),
+  p256dh     text not null,
+  auth       text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.push_subscriptions enable row level security;
+revoke all on public.push_subscriptions from anon;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+drop policy if exists "manage my devices" on public.push_subscriptions;
+create policy "manage my devices" on public.push_subscriptions for all to authenticated
+  using (side = public.my_side()) with check (side = public.my_side());
+
+-- Marks feed posts whose notification was already sent (so it's never sent twice).
+alter table public.feed add column if not exists pushed boolean not null default false;
+
+-- Timed reminders already sent today (one daily reminder + one 9 PM alert per person).
+create table if not exists public.reminder_log (
+  side    text not null references public.people (side),
+  day     date not null,
+  kind    text not null check (kind in ('remind', 'missed')),
+  sent_at timestamptz not null default now(),
+  primary key (side, day, kind)
+);
+alter table public.reminder_log enable row level security;
+revoke all on public.reminder_log from anon, authenticated;
+
+-- The app's server (secret key) can read and write everything it needs.
+grant all on public.people, public.days, public.weights, public.scratched, public.feed,
+  public.push_subscriptions, public.reminder_log to service_role;

@@ -189,7 +189,19 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       who: f.who, to_side: f.to, kind: f.kind, type: f.type ?? null, minutes: f.min ?? null,
       intensity: f.int ?? null, msg: f.msg ?? null, lost: f.lost ?? null, goal: f.goal ?? null,
     });
-    const postFeed = (item: FeedItem) => sb.from("feed").insert(feedRow(item));
+    /** Saves a feed post, then asks the server to notify your partner about it. */
+    const postFeed = async (item: FeedItem): Promise<Result> => {
+      const r = await sb.from("feed").insert(feedRow(item)).select("id").single();
+      if (!r.error && r.data?.id && session?.access_token) {
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ id: r.data.id }),
+          keepalive: true,
+        }).catch(() => { /* a missed notification shouldn't block saving */ });
+      }
+      return r;
+    };
     /** Removes feed posts (skips ones that only exist on this screen so far). */
     const deleteFeed = async (ids: string[]): Promise<Result> => {
       const real = ids.filter((id) => !id.startsWith("temp-"));

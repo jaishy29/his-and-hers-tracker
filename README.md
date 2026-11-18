@@ -11,7 +11,7 @@ The app installs on your phone's Home Screen like a regular app. It is a "Progre
 > - ✅ Milestone 2: real logins (email + password), a shared database and live syncing (Supabase)
 > - ✅ Milestone 3: Today screen on real data: Undo also removes the feed post, one high five per check-in, late check-in banner
 > - ✅ Milestones 4–5: Weight, Calendar, Progress and Rewards checked on real data; "unlocked a scratch-off" is never announced twice
-> - ⏳ Milestone 6: push notifications
+> - ✅ Milestone 6: push notifications (partner alerts, daily reminder, 9 PM missed check-in). Timed reminders switch on once the app is online.
 > - ⏳ Milestone 7: go live on Vercel and install on both phones
 
 ## What it does
@@ -30,7 +30,7 @@ The app installs on your phone's Home Screen like a regular app. It is a "Progre
 | Piece | What it does |
 |---|---|
 | **Next.js** | The app itself: its screens and a small private server part |
-| **Supabase** | Login by email link, the database, and live syncing between your two phones |
+| **Supabase** | Login (email + password), the database, live syncing between your two phones, and the reminder scheduler |
 | **Vercel** | Puts the app on the internet and updates it automatically when new code is pushed to GitHub |
 | **Web Push** | Phone notifications (iPhone needs iOS 16.4+ and the app added to the Home Screen) |
 
@@ -46,6 +46,13 @@ The app installs on your phone's Home Screen like a regular app. It is a "Progre
 How the data is protected: logged-out visitors can't read anything. Only the two linked accounts can see the data, and each person can only change their own side. These rules live in the database itself (`supabase/schema.sql`), not just in the app.
 
 Without the Supabase keys, the app runs in **practice mode** with pretend data saved only in that browser.
+
+## How notifications work
+
+- **Turning them on:** each person taps **Turn on notifications** on the Today screen, on each phone. On iPhone this only works after the app is added to the Home Screen and opened from there (iOS 16.4 or newer).
+- **Partner alerts** (check-in, rest day, nudge, high five, scratch-off unlocked): sent instantly by the app's server (`app/api/notify`) right after the post is saved.
+- **Timed reminders** (`app/api/cron/reminders`): a scheduler in Supabase calls this every 5 minutes. It sends your daily reminder once you're past your check-in time, and at 9 PM tells your partner if you still haven't checked in. Each is sent at most once a day (tracked in the `reminder_log` table). Protected by `CRON_SECRET`.
+- **Keys:** `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` identify the app to Apple and Google's notification services (make new ones with `npx web-push generate-vapid-keys`). `SUPABASE_SECRET_KEY` lets the server look up whom to notify. Both private values stay in `.env.local` and in Vercel's settings, never on GitHub.
 
 ## Running it on your laptop
 
@@ -80,6 +87,9 @@ Passwords and keys live only in `.env.local` (on your laptop) and in Vercel's se
 - `lib/supabase.ts`: the connection to Supabase.
 - `supabase/schema.sql`: the database tables and security rules.
 - `lib/demo.ts`: the pretend data used in practice mode.
-- `public/`: app icons and `sw.js`, the small background helper that makes the app installable (and later receives notifications).
+- `public/`: app icons and `sw.js`, the small background helper that makes the app installable and shows notifications.
+- `app/api/`: the server routes: `notify` (partner alerts), `push/test` ("Send me a test") and `cron/reminders` (timed reminders).
+- `lib/server/`: server-only code for sending notifications. Uses the secret key.
+- `components/NotificationsCard.tsx`: the "Turn on notifications" card.
 - `scripts/make-icons.mjs`: redraws the app icons (`node scripts/make-icons.mjs`).
 - `reference/original-index.html`: the original single-file version of the app, kept as the design reference.
