@@ -112,7 +112,7 @@ Each phone needs notifications turned on separately. Use **Send me a test** to c
 6. Test together: one of you sends a nudge; the other's phone should buzz within seconds.
 7. **Lock sign-ups:** in Supabase → Authentication → Sign In / Providers, turn **Allow new users to sign up** off and click **Save**. Logins keep working; nobody new can create an account.
 
-**Forgot a password?** There's no "reset by email" (the app never sends emails). Save both passwords in a password manager. If one is lost, the password can be reset from the Supabase dashboard (Authentication → Users), and the account keeps its side and history.
+**Forgot a password?** There's no "reset by email" (the app never sends emails). Save both passwords in a password manager. If one is lost, it can be reset with Supabase's admin tools using the secret key (ask Claude Code to help), and the account keeps its side and history.
 
 ## Keeping secrets safe
 
