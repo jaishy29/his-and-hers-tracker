@@ -4,7 +4,9 @@ A private workout and weight-loss tracker for two people. Each of you logs in on
 
 The app installs on your phone's Home Screen like a regular app. It is a "Progressive Web App": a website that can be installed and can send notifications.
 
-> **Status:** being built one milestone at a time. This README is updated as each piece is finished.
+**Live app:** https://his-and-hers-tracker.vercel.app
+
+> **Status:** all milestones done.
 >
 > - ✅ Milestone 0: project set up, private GitHub repository
 > - ✅ Milestone 1: the full design and all five tabs, using pretend data saved on one device ("practice mode")
@@ -12,7 +14,7 @@ The app installs on your phone's Home Screen like a regular app. It is a "Progre
 > - ✅ Milestone 3: Today screen on real data: Undo also removes the feed post, one high five per check-in, late check-in banner
 > - ✅ Milestones 4–5: Weight, Calendar, Progress and Rewards checked on real data; "unlocked a scratch-off" is never announced twice
 > - ✅ Milestone 6: push notifications (partner alerts, daily reminder, 9 PM missed check-in). Timed reminders switch on once the app is online.
-> - ⏳ Milestone 7: go live on Vercel and install on both phones
+> - ✅ Milestone 7: live on Vercel, updates deploy automatically from GitHub, reminder scheduler running every 5 minutes
 
 ## What it does
 
@@ -51,7 +53,7 @@ Without the Supabase keys, the app runs in **practice mode** with pretend data s
 
 - **Turning them on:** each person taps **Turn on notifications** on the Today screen, on each phone. On iPhone this only works after the app is added to the Home Screen and opened from there (iOS 16.4 or newer).
 - **Partner alerts** (check-in, rest day, nudge, high five, scratch-off unlocked): sent instantly by the app's server (`app/api/notify`) right after the post is saved.
-- **Timed reminders** (`app/api/cron/reminders`): a scheduler in Supabase calls this every 5 minutes. It sends your daily reminder once you're past your check-in time, and at 9 PM tells your partner if you still haven't checked in. Each is sent at most once a day (tracked in the `reminder_log` table). Protected by `CRON_SECRET`.
+- **Timed reminders** (`app/api/cron/reminders`): a scheduler in Supabase calls this every 5 minutes. It sends your daily reminder once you're past your check-in time, and at 9 PM tells your partner if you still haven't checked in. Each is sent at most once a day (tracked in the `reminder_log` table). Its password is generated inside the database (Supabase Vault) and checked with `check_cron_secret()`; `CRON_SECRET` also works, for manual testing.
 - **Keys:** `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` identify the app to Apple and Google's notification services (make new ones with `npx web-push generate-vapid-keys`). `SUPABASE_SECRET_KEY` lets the server look up whom to notify. Both private values stay in `.env.local` and in Vercel's settings, never on GitHub.
 
 ## Running it on your laptop
@@ -72,7 +74,45 @@ You need **Node.js** installed (the LTS version from https://nodejs.org).
 
 ## Deploying
 
-The step-by-step guide will be added here once the app is ready to go live. In short: sign in to Vercel with GitHub, import this repository, paste in the values from `.env.local`, and click Deploy. After that, every update pushed to GitHub goes live automatically.
+The app is hosted on **Vercel** (free Hobby plan) and connected to this GitHub repository. **Every change pushed to the `main` branch goes live automatically** in about a minute. To check on a deploy, open https://vercel.com → **his-and-hers-tracker → Deployments**.
+
+Setting it up from scratch (already done, kept here for reference):
+
+1. Go to https://vercel.com/new, choose **Continue with GitHub**, and pick the free **Hobby** plan.
+2. Give Vercel access to **only** the `his-and-hers-tracker` repository, then click **Import**.
+3. Add the private settings (Project → **Settings → Environment Variables**, Production): the 7 values from `.env.local`. The easy way from Terminal in this folder, after `npx vercel login` and `npx vercel link`:
+   ```bash
+   for NAME in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY NEXT_PUBLIC_VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT CRON_SECRET SUPABASE_SECRET_KEY; do grep "^$NAME=" .env.local | cut -d= -f2- | tr -d '\n' | npx vercel env add "$NAME" production --force; done
+   ```
+4. Deploy (push to GitHub, or click **Redeploy** in Vercel).
+5. In Supabase **SQL Editor**, run the "Reminder scheduler" section at the end of `supabase/schema.sql`. If the app's address ever changes, update the `url` there and run it again.
+
+**If you change a setting in Vercel,** it only takes effect after a new deploy (Deployments → ⋯ → **Redeploy**).
+
+## Installing on your phones
+
+**iPhone (iOS 16.4 or newer):**
+1. Open https://his-and-hers-tracker.vercel.app in **Safari** (not Chrome; iPhone only installs apps from Safari).
+2. Tap **Share** (the square with an arrow) → scroll down → **Add to Home Screen** → **Add**.
+3. Open **His & Hers** from your Home Screen, log in, then on Today tap **Turn on notifications** → **Allow**.
+
+**Android:**
+1. Open the link in **Chrome** → tap **⋮** → **Add to Home screen** (or **Install app**).
+2. Open it from the Home Screen, log in, tap **Turn on notifications** → **Allow**.
+
+Each phone needs notifications turned on separately. Use **Send me a test** to check.
+
+## Inviting your partner (checklist)
+
+1. Send them the link: https://his-and-hers-tracker.vercel.app
+2. They install it on their phone (see above) and open it from the Home Screen.
+3. They tap **I'm new: create an account**, use their own email and a password (8+ characters), and pick the free side (**His** or **Hers**).
+4. They set **My name** and **Daily check-in time** under My settings.
+5. They tap **Turn on notifications** → **Allow**, then **Send me a test**.
+6. Test together: one of you sends a nudge; the other's phone should buzz within seconds.
+7. **Lock sign-ups:** in Supabase → Authentication → Sign In / Providers, turn **Allow new users to sign up** off and click **Save**. Logins keep working; nobody new can create an account.
+
+**Forgot a password?** There's no "reset by email" (the app never sends emails). Save both passwords in a password manager. If one is lost, the password can be reset from the Supabase dashboard (Authentication → Users), and the account keeps its side and history.
 
 ## Keeping secrets safe
 
