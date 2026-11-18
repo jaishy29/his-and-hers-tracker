@@ -1,43 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
-import { INTS, MINS, NUDGES, OTHER, PEOPLE, TYPES, TYPE_LABEL, type Intensity, type Who, type WorkoutType } from "@/lib/constants";
+import { INTS, MINS, NUDGES, OTHER, PEOPLE, TYPES, type Intensity, type Who, type WorkoutType } from "@/lib/constants";
 import { ago, fmtTime, parse } from "@/lib/dates";
 import { describe, displayName, isLate, latestWeight, streak } from "@/lib/derive";
 import { ls, useStore } from "@/lib/store";
-import type { AppData, FeedItem } from "@/lib/types";
+import { feedText } from "@/lib/feedText";
+import type { FeedItem } from "@/lib/types";
 import { useToast } from "./Toast";
-
-export function feedText(f: FeedItem, data: AppData) {
-  const n = displayName(data.people[f.who], f.who);
-  switch (f.kind) {
-    case "checkin": return `${n} worked out: ${f.min} min ${TYPE_LABEL[f.type!] || "workout"}${f.int ? ` (${f.int})` : ""}`;
-    case "rest": return `${n} took a rest day`;
-    case "nudge": return `${n}: “${f.msg}”`;
-    case "cheer": return `${n} sent ${displayName(data.people[f.to], f.to)} a high five 🙌`;
-    case "milestone": return f.goal ? `${n} reached goal weight! 🏆` : `${n} hit −${f.lost} lb and unlocked a scratch-off 🎉`;
-  }
-}
 
 export default function TodayTab() {
   const { me } = useStore();
-  if (!me) return <Picker />;
-  return <TodayMain me={me} />;
-}
-
-function Picker() {
-  const { setMe } = useStore();
-  return (
-    <section className="panel">
-      <div className="card">
-        <h2>Who&apos;s using this phone?</h2>
-        <p className="hint">Pick once. The app remembers you, so check-ins and nudges go to the right person. (In the next milestone this becomes a real login.)</p>
-        <div className="pick">
-          <button className="his" onClick={() => setMe("his")}>His</button>
-          <button className="hers" onClick={() => setMe("hers")}>Hers</button>
-        </div>
-      </div>
-    </section>
-  );
+  return me ? <TodayMain me={me} /> : null;
 }
 
 function TodayMain({ me }: { me: Who }) {
@@ -254,7 +227,7 @@ function Feed() {
 }
 
 function Settings({ me }: { me: Who }) {
-  const { data, setName, setRemindAt, setMe } = useStore();
+  const { mode, data, setName, setRemindAt, auth } = useStore();
   const toast = useToast();
   const p = data.people[me];
   const [name, setNameText] = useState(p.name);
@@ -274,7 +247,12 @@ function Settings({ me }: { me: Who }) {
           onBlur={() => { if (time && time !== p.remindAt) { setRemindAt(time); toast("Check-in time set to " + fmtTime(time)); } }} />
       </label>
       <p className="hint">If you haven&apos;t checked in by this time (New York time), you&apos;ll get a reminder and the app marks you as running late.</p>
-      <div className="row"><button className="btn ghost small" onClick={() => setMe(null)}>Switch person</button></div>
+      {mode === "live" && auth.email && <p className="hint">Logged in as {auth.email}</p>}
+      <div className="row">
+        <button className="btn ghost small" onClick={() => { if (mode === "demo" || confirm("Log out of the app on this device?")) auth.signOut(); }}>
+          {mode === "demo" ? "Switch person" : "Log out"}
+        </button>
+      </div>
     </div>
   );
 }

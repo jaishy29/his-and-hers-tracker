@@ -8,7 +8,10 @@ The app installs on your phone's Home Screen like a regular app. It is a "Progre
 >
 > - ✅ Milestone 0: project set up, private GitHub repository
 > - ✅ Milestone 1: the full design and all five tabs, using pretend data saved on one device ("practice mode")
-> - ⏳ Milestone 2: real logins and a shared database (Supabase)
+> - ✅ Milestone 2: real logins (email + password), a shared database and live syncing (Supabase)
+> - ⏳ Milestone 3–5: polish the Today, Weight, Calendar, Progress and Rewards screens on real data
+> - ⏳ Milestone 6: push notifications
+> - ⏳ Milestone 7: go live on Vercel and install on both phones
 
 ## What it does
 
@@ -29,6 +32,19 @@ The app installs on your phone's Home Screen like a regular app. It is a "Progre
 | **Supabase** | Login by email link, the database, and live syncing between your two phones |
 | **Vercel** | Puts the app on the internet and updates it automatically when new code is pushed to GitHub |
 | **Web Push** | Phone notifications (iPhone needs iOS 16.4+ and the app added to the Home Screen) |
+
+## Setting up the database (one time)
+
+1. Create a free project at https://supabase.com.
+2. **Authentication → Sign In / Providers:** turn **Email** on and **Confirm email** off. (Login uses email + password. No emails are ever sent.)
+3. **SQL Editor → New query:** paste all of `supabase/schema.sql` and click **Run**. It's safe to run again after updates.
+4. **Project Settings → API Keys:** copy the Project URL and the **publishable** key into `.env.local` (see `.env.example`).
+5. Each person opens the app, creates an account, and picks **His** or **Hers**. A side can only be claimed once.
+6. After both of you have joined, turn **Allow new users to sign up** off in Authentication → Sign In / Providers, so nobody else can make an account.
+
+How the data is protected: logged-out visitors can't read anything. Only the two linked accounts can see the data, and each person can only change their own side. These rules live in the database itself (`supabase/schema.sql`), not just in the app.
+
+Without the Supabase keys, the app runs in **practice mode** with pretend data saved only in that browser.
 
 ## Running it on your laptop
 
@@ -59,7 +75,9 @@ Passwords and keys live only in `.env.local` (on your laptop) and in Vercel's se
 - `app/`: the page layout, the install settings (`manifest.ts`) and the styles (`globals.css`).
 - `components/`: one file per screen (`TodayTab.tsx`, `ProgressTab.tsx`, `CalendarTab.tsx`, `WeightTab.tsx`, `RewardsTab.tsx`) plus the scratch-off ticket.
 - `lib/constants.ts`: start weights, goals, dates, workout types and nudge messages. Change them here.
-- `lib/store.tsx`: where the app's data is kept and changed.
+- `lib/store.tsx`: picks live mode (`lib/liveStore.tsx`, Supabase) or practice mode (`lib/demoStore.tsx`).
+- `lib/supabase.ts`: the connection to Supabase.
+- `supabase/schema.sql`: the database tables and security rules.
 - `lib/demo.ts`: the pretend data used in practice mode.
 - `public/`: app icons and `sw.js`, the small background helper that makes the app installable (and later receives notifications).
 - `scripts/make-icons.mjs`: redraws the app icons (`node scripts/make-icons.mjs`).

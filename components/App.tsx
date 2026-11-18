@@ -8,6 +8,7 @@ import CalendarTab from "./CalendarTab";
 import WeightTab from "./WeightTab";
 import RewardsTab from "./RewardsTab";
 import ServiceWorker from "./ServiceWorker";
+import { LoginScreen, SidePicker } from "./AuthScreens";
 
 const TABS = [
   { id: "today", label: "Today", icon: <path d="M20 6 9 17l-5-5" /> },
@@ -20,17 +21,17 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function App() {
   return (
-    <DataProvider>
-      <ToastProvider>
+    <ToastProvider>
+      <DataProvider>
         <ServiceWorker />
         <Shell />
-      </ToastProvider>
-    </DataProvider>
+      </DataProvider>
+    </ToastProvider>
   );
 }
 
 function Shell() {
-  const { ready, me, syncLabel, resetDemo } = useStore();
+  const { mode, ready, me, syncLabel, resetDemo, auth } = useStore();
   const [tab, setTab] = useState<TabId>("today");
 
   useEffect(() => {
@@ -57,14 +58,19 @@ function Shell() {
           <div className="eyebrow">Accountability board · started Oct 15, 2026</div>
           <h1>His &amp; Hers</h1>
         </div>
-        <div className="sync">{ready ? syncLabel : "Loading…"}</div>
+        <div className="sync">{ready ? syncLabel : auth.status === "loading" ? "Loading…" : ""}</div>
       </header>
 
-      <div className="offline demo">
-        <p><b>Practice mode.</b> This is pretend data saved on this device only. Real accounts and syncing come next.</p>
-        <button className="btn ghost small" onClick={() => { if (confirm("Reset the pretend data?")) resetDemo(); }}>Reset pretend data</button>
-      </div>
+      {mode === "demo" && (
+        <div className="offline demo">
+          <p><b>Practice mode.</b> This is pretend data saved on this device only. Add the Supabase keys to <code>.env.local</code> to use real accounts.</p>
+          <button className="btn ghost small" onClick={() => { if (confirm("Reset the pretend data?")) resetDemo(); }}>Reset pretend data</button>
+        </div>
+      )}
 
+      {auth.status === "signedOut" ? <LoginScreen />
+        : auth.status === "needsSide" ? <SidePicker />
+        : <>
       <nav className="tabs" role="tablist" aria-label="Sections">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => show(t.id)}>
@@ -85,6 +91,7 @@ function Shell() {
           {tab === "rewards" && <RewardsTab />}
         </>
       )}
+      </>}
     </div>
   );
 }

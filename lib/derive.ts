@@ -28,6 +28,17 @@ export function milestones(who: Who): Milestone[] {
   return out;
 }
 
+/** If saving `value` for `day` reaches a new ticket, returns the biggest one reached. */
+export function newMilestone(p: PersonState, who: Who, day: string, value: number | null): Milestone | null {
+  const before = bestWeight(p);
+  const others = Object.entries(p.weights).filter(([k]) => k !== day).map(([, v]) => v);
+  const after = value == null ? null : Math.min(value, ...others);
+  const newly = milestones(who).filter(
+    (m) => after != null && after <= m.target && !(before != null && before <= m.target),
+  );
+  return newly.length ? newly[newly.length - 1] : null;
+}
+
 export function streak(p: PersonState, today: string) {
   let n = 0;
   let d = parse(today);
