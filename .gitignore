@@ -21,3 +21,9 @@ build/
 # Supabase local files
 supabase/.temp/
 supabase/.branches/
+
+# Next.js / TypeScript generated files
+*.tsbuildinfo
+next-env.d.ts
+*.pem
+/coverage

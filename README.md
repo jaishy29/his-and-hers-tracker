@@ -5,6 +5,10 @@ A private workout and weight-loss tracker for two people. Each of you logs in on
 The app installs on your phone's Home Screen like a regular app. It is a "Progressive Web App": a website that can be installed and can send notifications.
 
 > **Status:** being built one milestone at a time. This README is updated as each piece is finished.
+>
+> - ✅ Milestone 0: project set up, private GitHub repository
+> - ✅ Milestone 1: the full design and all five tabs, using pretend data saved on one device ("practice mode")
+> - ⏳ Milestone 2: real logins and a shared database (Supabase)
 
 ## What it does
 
@@ -52,4 +56,11 @@ Passwords and keys live only in `.env.local` (on your laptop) and in Vercel's se
 
 ## Folder guide
 
+- `app/`: the page layout, the install settings (`manifest.ts`) and the styles (`globals.css`).
+- `components/`: one file per screen (`TodayTab.tsx`, `ProgressTab.tsx`, `CalendarTab.tsx`, `WeightTab.tsx`, `RewardsTab.tsx`) plus the scratch-off ticket.
+- `lib/constants.ts`: start weights, goals, dates, workout types and nudge messages. Change them here.
+- `lib/store.tsx`: where the app's data is kept and changed.
+- `lib/demo.ts`: the pretend data used in practice mode.
+- `public/`: app icons and `sw.js`, the small background helper that makes the app installable (and later receives notifications).
+- `scripts/make-icons.mjs`: redraws the app icons (`node scripts/make-icons.mjs`).
 - `reference/original-index.html`: the original single-file version of the app, kept as the design reference.
