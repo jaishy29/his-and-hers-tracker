@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { DEFAULT_REMIND_AT, OTHER, type Who } from "./constants";
 import { todayNY } from "./dates";
-import { newMilestone } from "./derive";
+import { newMilestone, todaysDayPosts } from "./derive";
 import { emptyPerson, makeDemoData } from "./demo";
 import { ls, StoreCtx, useClock, type Store } from "./storeCore";
 import type { AppData, FeedItem } from "./types";
@@ -78,6 +78,10 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           if (kind === "done" && log) p.logs[today] = { ...log, at: Date.now() };
           else delete p.logs[today];
           if (was !== kind) {
+            if (was) {
+              const ids = todaysDayPosts(d.feed, who, today).map((f) => f.id);
+              d.feed = d.feed.filter((f) => !ids.includes(f.id));
+            }
             post(d, kind === "done" && log
               ? { kind: "checkin", who, to: OTHER[who], type: log.type, min: log.min, int: log.int }
               : { kind: "rest", who, to: OTHER[who] });
@@ -90,6 +94,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         commit((d) => {
           delete d.people[who].workouts[today];
           delete d.people[who].logs[today];
+          const ids = todaysDayPosts(d.feed, who, today).map((f) => f.id);
+          d.feed = d.feed.filter((f) => !ids.includes(f.id));
         });
       },
       setDay(who, day, mark) {

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { Session } from "@supabase/supabase-js";
 import { useToast } from "@/components/Toast";
 import { DEFAULT_REMIND_AT, OTHER, type Intensity, type Who, type WorkoutType } from "./constants";
-import { newMilestone } from "./derive";
+import { newMilestone, todaysDayPosts } from "./derive";
 import { emptyPerson } from "./demo";
 import { feedText } from "./feedText";
 import { StoreCtx, useClock, type AuthStatus, type Store } from "./storeCore";
@@ -190,6 +190,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       intensity: f.int ?? null, msg: f.msg ?? null, lost: f.lost ?? null, goal: f.goal ?? null,
     });
     const postFeed = (item: FeedItem) => sb.from("feed").insert(feedRow(item));
+    /** Removes feed posts (skips ones that only exist on this screen so far). */
+    const deleteFeed = async (ids: string[]): Promise<Result> => {
+      const real = ids.filter((id) => !id.startsWith("temp-"));
+      return real.length ? sb.from("feed").delete().in("id", real) : { error: null };
+    };
 
     const status: AuthStatus = !authLoaded ? "loading"
       : !session ? "signedOut"
@@ -237,13 +242,18 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         const item = was === kind ? null : tempItem(withLog
           ? { kind: "checkin", who, to: OTHER[who], type: log.type, min: log.min, int: log.int }
           : { kind: "rest", who, to: OTHER[who] });
+        // Switching between workout and rest day replaces today's earlier post.
+        const replaced = item && was ? todaysDayPosts(data.feed, who, today).map((f) => f.id) : [];
         run((d) => {
           const p = d.people[who];
           p.workouts[today] = kind;
           if (withLog) p.logs[today] = { ...log, at: Date.now() };
           else delete p.logs[today];
+          d.feed = d.feed.filter((f) => !replaced.includes(f.id));
           if (item) d.feed.unshift(item);
         }, async () => {
+          const del = await deleteFeed(replaced);
+          if (del.error) return del;
           const r = await sb.from("days").upsert({
             side: who, day: today, mark: kind,
             type: withLog ? log.type : null, minutes: withLog ? log.min : null,
@@ -257,10 +267,15 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
       clearToday() {
         const who = need();
+        const posts = todaysDayPosts(data.feed, who, today).map((f) => f.id);
         run((d) => {
           delete d.people[who].workouts[today];
           delete d.people[who].logs[today];
-        }, () => sb.from("days").delete().eq("side", who).eq("day", today));
+          d.feed = d.feed.filter((f) => !posts.includes(f.id));
+        }, async () => {
+          const r = await sb.from("days").delete().eq("side", who).eq("day", today);
+          return r.error ? r : deleteFeed(posts);
+        });
       },
 
       setDay(who, day, mark) {

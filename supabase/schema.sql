@@ -142,6 +142,12 @@ create policy "mark my messages seen" on public.feed for update to authenticated
 revoke update on public.feed from authenticated;
 grant update (seen) on public.feed to authenticated;
 
+-- "Undo today" removes your own check-in / rest-day post (never your partner's posts).
+grant delete on public.feed to authenticated;
+drop policy if exists "delete my own day posts" on public.feed;
+create policy "delete my own day posts" on public.feed for delete to authenticated
+  using (who = public.my_side() and kind in ('checkin', 'rest'));
+
 -- ---------- Live syncing ----------
 -- Tell Supabase to push changes to both phones instantly.
 do $$

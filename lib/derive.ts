@@ -1,7 +1,7 @@
 // Numbers worked out from the saved data (streaks, totals, milestones...).
 import { PEOPLE, TYPE_LABEL, WORKOUT_START, DEFAULT_REMIND_AT, type Who } from "./constants";
-import { addDays, iso, parse } from "./dates";
-import type { Milestone, PersonState, WorkoutLog } from "./types";
+import { addDays, iso, parse, todayNY } from "./dates";
+import type { FeedItem, Milestone, PersonState, WorkoutLog } from "./types";
 
 export const displayName = (p: PersonState, who: Who) => p.name || PEOPLE[who].dflt;
 
@@ -68,4 +68,14 @@ export function isLate(p: PersonState, today: string, nowHM: string) {
 
 export function describe(l?: WorkoutLog | null) {
   return l ? `${l.min} min ${TYPE_LABEL[l.type] || "workout"}${l.int ? " · " + l.int : ""}` : "Workout";
+}
+
+/** Today's "checked in" / "rest day" feed posts by this person (removed again by Undo today). */
+export function todaysDayPosts(feed: FeedItem[], who: Who, today: string) {
+  return feed.filter((f) => f.who === who && (f.kind === "checkin" || f.kind === "rest") && todayNY(new Date(f.at)) === today);
+}
+
+/** True if `from` already sent `to` a high five at or after `sinceMs`. */
+export function cheeredSince(feed: FeedItem[], from: Who, to: Who, sinceMs: number) {
+  return feed.some((f) => f.kind === "cheer" && f.who === from && f.to === to && f.at >= sinceMs);
 }

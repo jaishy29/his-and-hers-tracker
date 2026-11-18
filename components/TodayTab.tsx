@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { INTS, MINS, NUDGES, OTHER, PEOPLE, TYPES, type Intensity, type Who, type WorkoutType } from "@/lib/constants";
 import { ago, fmtTime, parse } from "@/lib/dates";
-import { describe, displayName, isLate, latestWeight, streak } from "@/lib/derive";
+import { cheeredSince, describe, displayName, isLate, latestWeight, streak } from "@/lib/derive";
 import { ls, useStore } from "@/lib/store";
 import { feedText } from "@/lib/feedText";
 import type { FeedItem } from "@/lib/types";
@@ -13,12 +13,21 @@ export default function TodayTab() {
   return me ? <TodayMain me={me} /> : null;
 }
 
+const scrollToCheckIn = () => document.getElementById("checkin")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
 function TodayMain({ me }: { me: Who }) {
-  const { data, today } = useStore();
+  const { data, today, nowHM } = useStore();
   const other = OTHER[me];
   const items = data.feed.filter((f) => f.to === me && f.who !== me && !f.seen).slice(0, 5);
+  const late = isLate(data.people[me], today, nowHM);
   return (
     <section className="panel">
+      {late && (
+        <div className="msg late-banner">
+          <p>It&apos;s past your {fmtTime(data.people[me].remindAt)} check-in time.<small>Log anything, even a short walk. Your streak is counting on it.</small></p>
+          <div className="row"><button className="btn small" onClick={scrollToCheckIn}>Check in now</button></div>
+        </div>
+      )}
       {items.length > 0 && <Inbox items={items} />}
       <div className="grid2">
         <CheckInCard me={me} key={me + today} />
@@ -60,7 +69,7 @@ function CheckInCard({ me }: { me: Who }) {
   const doClear = () => { clearToday(); setNote(""); toast("Today cleared"); };
 
   return (
-    <div className="card me">
+    <div className="card me" id="checkin" style={{ scrollMarginTop: 16 }}>
       <div className="panelhead">
         <h2>Check in, {displayName(p, me)}</h2>
         <span className="eyebrow">{parse(today).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</span>
@@ -111,7 +120,7 @@ function CheckInCard({ me }: { me: Who }) {
 }
 
 function PartnerCard({ who }: { who: Who }) {
-  const { data, today, nowHM, sendNudge, sendCheer } = useStore();
+  const { data, me, today, nowHM, sendNudge, sendCheer } = useStore();
   const toast = useToast();
   const p = data.people[who];
   const pw = p.workouts[today];
@@ -120,7 +129,8 @@ function PartnerCard({ who }: { who: Who }) {
   const name = displayName(p, who);
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState("");
-  const [cheered, setCheered] = useState(false);
+  // One high five per check-in: remembered in the feed, so it survives reloads and other devices.
+  const cheered = !!me && !!pl && cheeredSince(data.feed, me, who, pl.at);
   const nudge = (msg: string) => {
     sendNudge(msg);
     toast(`Nudge sent to ${name}`);
@@ -142,7 +152,7 @@ function PartnerCard({ who }: { who: Who }) {
       <div className="row">
         {pw === "done" && (
           <button className="btn small" style={{ background: "var(--pc)" }} disabled={cheered}
-            onClick={() => { sendCheer(); setCheered(true); toast(`High five sent to ${name}!`); }}>Send a high five 🙌</button>
+            onClick={() => { sendCheer(); toast(`High five sent to ${name}!`); }}>{cheered ? "High five sent ✓" : "Send a high five 🙌"}</button>
         )}
         <button className={`btn small ${pw === "done" ? "ghost" : ""}`} style={pw === "done" ? undefined : { background: "var(--pc)" }}
           onClick={() => setOpen(!open)}>Send a nudge</button>
@@ -191,7 +201,7 @@ function QuickWeight({ me }: { me: Who }) {
 }
 
 function Inbox({ items }: { items: FeedItem[] }) {
-  const { data, nowMs: now, markSeen, sendCheer } = useStore();
+  const { data, me, nowMs: now, markSeen, sendCheer } = useStore();
   const toast = useToast();
   return (
     <div className="inbox">
@@ -199,10 +209,10 @@ function Inbox({ items }: { items: FeedItem[] }) {
         <div className="msg" key={f.id}>
           <p>{feedText(f, data)}<small>{ago(f.at, now)}</small></p>
           <div className="row">
-            {(f.kind === "checkin" || f.kind === "milestone") && (
+            {(f.kind === "checkin" || f.kind === "milestone") && me && !cheeredSince(data.feed, me, f.who, f.at) && (
               <button className="btn small" onClick={() => { sendCheer(); markSeen(f.id); toast("High five sent!"); }}>High five back 🙌</button>
             )}
-            {f.kind === "nudge" && <button className="btn small" onClick={() => { markSeen(f.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>On it!</button>}
+            {f.kind === "nudge" && <button className="btn small" onClick={() => { markSeen(f.id); scrollToCheckIn(); }}>On it!</button>}
             <button className="btn ghost small" onClick={() => markSeen(f.id)}>Dismiss</button>
           </div>
         </div>

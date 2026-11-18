@@ -189,3 +189,4 @@ td input.his{border-color:color-mix(in srgb,var(--his) 45%,var(--line))} td inpu
 .demo p{margin:0}
 .ticket .wait{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:8px;font-size:.78rem;font-weight:600;color:var(--muted);background:linear-gradient(135deg,var(--foil1),var(--foil2),var(--foil1));z-index:1}
 .ticket .wait b{font:900 1.2rem var(--font-display);color:rgba(0,0,0,.45);letter-spacing:.02em}
+.msg.late-banner{background:color-mix(in srgb,var(--warn) 12%,var(--surface));border-color:var(--warn)}
