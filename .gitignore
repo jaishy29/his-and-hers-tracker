@@ -1,0 +1,23 @@
+# Secrets: never commit these
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+.vercel/
+
+# Mac and editor clutter
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Supabase local files
+supabase/.temp/
+supabase/.branches/
