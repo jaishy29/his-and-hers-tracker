@@ -27,3 +27,6 @@ supabase/.branches/
 next-env.d.ts
 *.pem
 /coverage
+.vercel
+.env*
+!.env.example
